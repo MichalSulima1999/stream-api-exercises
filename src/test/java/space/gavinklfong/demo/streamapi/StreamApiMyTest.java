@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
+import java.util.function.BiPredicate;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -41,7 +42,11 @@ public class StreamApiMyTest {
 	@DisplayName("Obtain a list of product with category = \"Books\" and price > 100")
 	public void exercise1() {
 		long startTime = System.currentTimeMillis();
-		List<Product> result = List.of();
+		List<Product> result = productRepo.findAll()
+				.stream()
+				.filter(product -> product.getCategory().equalsIgnoreCase("Books"))
+				.filter(product -> product.getPrice() > 100)
+				.collect(Collectors.toList());
 		long endTime = System.currentTimeMillis();
 
 		log.info(String.format("exercise 1 - execution time: %1$d ms", (endTime - startTime)));
@@ -51,8 +56,14 @@ public class StreamApiMyTest {
 	@Test
 	@DisplayName("Obtain a list of product with category = \"Books\" and price > 100 (using Predicate chaining for filter)")
 	public void exercise1a() {
+		Predicate<Product> categoryPredicate = product -> product.getCategory().equalsIgnoreCase("Books");
+		Predicate<Product> pricePredicate = product -> product.getPrice() > 100;
+
 		long startTime = System.currentTimeMillis();
-		List<Product> result = List.of();
+		List<Product> result = productRepo.findAll()
+				.stream()
+				.filter(categoryPredicate.and(pricePredicate))
+				.collect(Collectors.toList());
 		long endTime = System.currentTimeMillis();
 
 		log.info(String.format("exercise 1a - execution time: %1$d ms", (endTime - startTime)));
@@ -62,8 +73,13 @@ public class StreamApiMyTest {
 	@Test
 	@DisplayName("Obtain a list of product with category = \"Books\" and price > 100 (using BiPredicate for filter)")
 	public void exercise1b() {
+		BiPredicate<Product, String> predicate = ((product, category) -> product.getCategory().equalsIgnoreCase(category));
+
 		long startTime = System.currentTimeMillis();
-		List<Product> result = List.of();
+		List<Product> result = productRepo.findAll()
+				.stream()
+				.filter(product -> predicate.test(product, "Books") && product.getPrice() > 100)
+				.collect(Collectors.toList());
 		long endTime = System.currentTimeMillis();
 
 		log.info(String.format("exercise 1b - execution time: %1$d ms", (endTime - startTime)));
@@ -74,7 +90,12 @@ public class StreamApiMyTest {
 	@DisplayName("Obtain a list of order with product category = \"Baby\"")
 	public void exercise2() {
 		long startTime = System.currentTimeMillis();
-		List<Order> result = List.of();
+		List<Order> result = orderRepo.findAll()
+				.stream()
+				.filter(order -> order.getProducts()
+						.stream()
+						.anyMatch(product -> product.getCategory().equalsIgnoreCase("Baby")))
+				.collect(Collectors.toList());
 
 		long endTime = System.currentTimeMillis();
 
@@ -88,7 +109,12 @@ public class StreamApiMyTest {
 	public void exercise3() {
 		long startTime = System.currentTimeMillis();
 
-		List<Product> result = List.of();
+		List<Product> result = productRepo.findAll()
+				.stream()
+				.filter(product -> product.getCategory().equalsIgnoreCase("Toys"))
+				//.map(product -> new Product(product.getId(), product.getName(), product.getCategory(), product.getPrice() * 0.9, product.getOrders()))
+				.map(product -> product.withPrice(product.getPrice() * 0.9))
+				.collect(Collectors.toList());
 
 		long endTime = System.currentTimeMillis();
 		log.info(String.format("exercise 3 - execution time: %1$d ms", (endTime - startTime)));
@@ -100,7 +126,14 @@ public class StreamApiMyTest {
 	@DisplayName("Obtain a list of products ordered by customer of tier 2 between 01-Feb-2021 and 01-Apr-2021")
 	public void exercise4() {
 		long startTime = System.currentTimeMillis();
-		List<Product> result = List.of();
+		List<Product> result = orderRepo.findAll()
+				.stream()
+				.filter(o -> o.getCustomer().getTier() == 2)
+				.filter(o -> o.getOrderDate().isAfter(LocalDate.of(2021, 2, 1)) &&
+						o.getOrderDate().isBefore(LocalDate.of(2021, 4, 1)))
+				.sorted(Comparator.comparing(o -> o.getCustomer().getName()))
+				.flatMap(p -> p.getProducts().stream())
+				.collect(Collectors.toList());
 		long endTime = System.currentTimeMillis();
 		log.info(String.format("exercise 4 - execution time: %1$d ms", (endTime - startTime)));
 		result.forEach(o -> log.info(o.toString()));
@@ -111,12 +144,16 @@ public class StreamApiMyTest {
 	public void exercise5() {
 		long startTime = System.currentTimeMillis();
 
-		Optional<Product> result = Optional.empty();
+		List<Product> result = productRepo.findAll()
+				.stream()
+				.filter(p -> p.getCategory().equalsIgnoreCase("Books"))
+				.sorted(Comparator.comparing(Product::getPrice))
+				.limit(3)
+				.collect(Collectors.toList());
 
 		long endTime = System.currentTimeMillis();
 		log.info(String.format("exercise 5 - execution time: %1$d ms", (endTime - startTime)));
-		log.info(result.get().toString());
-
+		result.forEach(o -> log.info(o.toString()));
 	}
 
 	@Test
