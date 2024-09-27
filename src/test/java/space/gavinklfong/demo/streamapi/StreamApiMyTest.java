@@ -160,7 +160,12 @@ public class StreamApiMyTest {
 	@DisplayName("Get the 3 most recent placed order")
 	public void exercise6() {
 		long startTime = System.currentTimeMillis();
-		List<Order> result = List.of();
+		List<Order> result = orderRepo.findAll()
+				.stream()
+				.sorted(Comparator.comparing(Order::getOrderDate).reversed())
+				//.sorted(((o1, o2) -> o2.getOrderDate().compareTo(o1.getOrderDate())))
+				.limit(3)
+				.collect(Collectors.toList());
 
 		long endTime = System.currentTimeMillis();
 		log.info(String.format("exercise 6 - execution time: %1$d ms", (endTime - startTime)));
@@ -171,7 +176,12 @@ public class StreamApiMyTest {
 	@DisplayName("Get a list of products which was ordered on 15-Mar-2021")
 	public void exercise7() {
 		long startTime = System.currentTimeMillis();
-		List<Product> result = List.of();
+		List<Product> result = orderRepo.findAll()
+				.stream()
+				.filter(order -> order.getOrderDate().isEqual(LocalDate.of(2021, 3, 15)))
+				.flatMap(order -> order.getProducts().stream())
+				.distinct()
+				.collect(Collectors.toList());
 
 		long endTime = System.currentTimeMillis();
 		log.info(String.format("exercise 7 - execution time: %1$d ms", (endTime - startTime)));
@@ -182,7 +192,14 @@ public class StreamApiMyTest {
 	@DisplayName("Calculate the total lump of all orders placed in Feb 2021")
 	public void exercise8() {
 		long startTime = System.currentTimeMillis();
-		double result = 0;
+		double result = orderRepo.findAll()
+				.stream()
+				.filter(order -> order.getOrderDate().isAfter(LocalDate.of(2021, 2, 1)) &&
+						order.getOrderDate().isBefore(LocalDate.of(2021, 3, 1)))
+				.flatMap(order -> order.getProducts().stream())
+				.map(Product::getPrice)
+				.reduce(Double::sum)
+				.orElse(0d);
 
 		long endTime = System.currentTimeMillis();
 		log.info(String.format("exercise 8 - execution time: %1$d ms", (endTime - startTime)));
