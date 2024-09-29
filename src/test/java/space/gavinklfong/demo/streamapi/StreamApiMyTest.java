@@ -202,26 +202,37 @@ public class StreamApiMyTest {
 				.orElse(0d);
 
 		long endTime = System.currentTimeMillis();
-		log.info(String.format("exercise 8 - execution time: %1$d ms", (endTime - startTime)));
+		log.info("exercise 8 - execution time: {} ms", (endTime - startTime));
 		log.info("Total lump sum = " + result);
 	}
 
 	@Test
 	@DisplayName("Calculate the total lump of all orders placed in Feb 2021 (using reduce with BiFunction)")
 	public void exercise8a() {
+		BiFunction<Double, Product, Double> accumulator = (acc, product) -> acc + product.getPrice();
 		long startTime = System.currentTimeMillis();
-		double result = 0;
+		double result = orderRepo.findAll()
+				.stream()
+				.filter(order -> order.getOrderDate().isAfter(LocalDate.of(2021, 2, 1)) &&
+						order.getOrderDate().isBefore(LocalDate.of(2021, 3, 1)))
+				.flatMap(order -> order.getProducts().stream())
+				.reduce(0d, accumulator, Double::sum);
 
 		long endTime = System.currentTimeMillis();
-		log.info(String.format("exercise 8a - execution time: %1$d ms", (endTime - startTime)));
-		log.info("Total lump sum = " + result);
+		log.info("exercise 8a - execution time: {} ms", (endTime - startTime));
+		log.info("Total lump sum = {}", result);
 	}
 
 	@Test
 	@DisplayName("Calculate the average price of all orders placed on 15-Mar-2021")
 	public void exercise9() {
 		long startTime = System.currentTimeMillis();
-		double result = 0;
+		double result = orderRepo.findAll()
+				.stream()
+				.filter(order -> order.getOrderDate().equals(LocalDate.of(2021, 3, 15)))
+				.flatMap(order -> order.getProducts().stream())
+				.mapToDouble(Product::getPrice)
+				.average().orElseThrow();
 
 		long endTime = System.currentTimeMillis();
 		log.info(String.format("exercise 9 - execution time: %1$d ms", (endTime - startTime)));
